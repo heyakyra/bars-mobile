@@ -39,37 +39,40 @@ export default class App extends React.Component {
 
   _onPressOverwrite = () => {};
 
-  _onPressRecord = async () => {
+  _onPressRecord = () => {
     this.setState(
       { currentRecording: new Expo.Audio.Recording() },
-      startRecording
+      this._startRecording
     );
-
-    const startRecording = async () => {
-      try {
-        await this.currentRecording.prepareToRecordAsync(
-          Expo.Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
-        );
-        await this.currentRecording.startAsync();
-        console.log("RECORDING!");
-        this.setState({ status: "recording" });
-      } catch (error) {
-        console.error(error);
-      }
-    };
   };
 
   _onPressReplay = async () => {
     if (this.status === "recording") {
-      await this.currentRecording.stopAndUnloadAsync();
-      this.previewAudio = await this.currentRecording.createNewLoadedSound();
+      await this.state.currentRecording.stopAndUnloadAsync();
+      this.state.previewAudio = await this.state.currentRecording.createNewLoadedSound();
       this.setState({ status: "playing" });
     }
     this.previewAudio.replayAsync();
   };
 
   _onPressSave = () => {
-    this.currentRecording.stopAndUnloadAsync();
+    this.state.currentRecording.stopAndUnloadAsync();
+  };
+
+  _startRecording = async () => {
+    try {
+      await this.state.currentRecording.prepareToRecordAsync(
+        Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
+      );
+      console.log(
+        "RECORDING ",
+        await this.state.currentRecording.getStatusAsync()
+      );
+      await this.state.currentRecording.startAsync();
+      this.setState({ status: "recording" });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   render = () => {
