@@ -13,8 +13,10 @@ import Expo, { Asset, Audio, FileSystem, Font, Permissions } from "expo";
 export default class App extends React.Component {
   recorder = null;
   recording = null;
+  dimensions = {};
   state = {
     haveRecordingPermissions: false,
+    longestDuration: 0,
     status: "",
     clips: []
   };
@@ -27,6 +29,10 @@ export default class App extends React.Component {
     //   this.setState({ fontLoaded: true });
     // })();
     this._askForPermissions();
+  };
+
+  componentDidUpdate = () => {
+    this.dimensions = Dimensions.get("window");
   };
 
   _askForPermissions = async () => {
@@ -42,7 +48,7 @@ export default class App extends React.Component {
     this._startRecorder();
   };
 
-  _onPressRecord = () => {
+  _onPressStart = () => {
     this._startRecorder();
   };
 
@@ -57,17 +63,21 @@ export default class App extends React.Component {
   };
 
   _onPressSave = async () => {
+    if (this.state.status === "recording") {
+      await this.recorder.stopAndUnloadAsync();
+    }
     this.setState(
       {
         clips: [
           ...this.state.clips,
           { ...this.recorder, key: (this.state.clips.length + 1).toString() }
-        ]
+        ],
+        longestDuration:
+          this.state.longestDuration > this.recorder._finalDurationMillis
+            ? this.state.longestDuration
+            : this.recorder._finalDurationMillis
       },
-      () => {
-        this._startRecorder;
-        console.log(this.state.clips);
-      }
+      this._startRecorder
     );
   };
 
@@ -109,11 +119,44 @@ export default class App extends React.Component {
         <FlatList
           style={styles.clips}
           data={this.state.clips}
-          renderItem={clip => (
-            <View style={styles.bar}>
-              <Text>{clip._finalDurationMillis}</Text>
-            </View>
-          )}
+          renderItem={clip => {
+            console.log(
+              "WIDTH",
+              Math.floor(
+                clip._finalDurationMillis /
+                  this.state.longestDuration *
+                  this.dimensions.width *
+                  0.8
+              ),
+              "CLIP DURATION:",
+              clip._finalDurationMillis,
+              "LONGEST DURATION:",
+              this.state.longestDuration,
+              "WIDTH",
+              this.dimensions.width,
+              "CLIP",
+              clip
+            );
+            return (
+              <View
+                style={{
+                  height: 20,
+                  margin: 4,
+                  backgroundColor: "#e4b4c2",
+                  width: this.state._finalDurationMillis
+                    ? Math.floor(
+                        clip._finalDurationMillis /
+                          this.state.longestDuration *
+                          this.dimensions.width *
+                          0.8
+                      )
+                    : Math.floor(this.dimensions.width * 0.8)
+                }}
+              >
+                <Text>{clip._finalDurationMillis}</Text>
+              </View>
+            );
+          }}
         />
         <View style={styles.controls}>
           <Button
@@ -125,11 +168,11 @@ export default class App extends React.Component {
           />
           {!this.state.status ? (
             <Button
-              onPress={this._onPressRecord}
-              title="Record"
+              onPress={this._onPressStart}
+              title="Start"
               style={styles.button}
               color="#ffb8d1"
-              accessibilityLabel="Record"
+              accessibilityLabel="Start"
             />
           ) : (
             <Button
@@ -155,7 +198,8 @@ export default class App extends React.Component {
 
 const styles = StyleSheet.create({
   bar: {
-    height: 40,
+    height: 20,
+    margin: 4,
     backgroundColor: "#e4b4c2"
   },
   container: {
@@ -172,7 +216,7 @@ const styles = StyleSheet.create({
   clips: {
     flex: 1,
     flexDirection: "column",
-    backgroundColor: "blue"
+    backgroundColor: "#e7cee3"
   },
   controls: {
     height: 80,
