@@ -5,13 +5,14 @@ import {
   Button,
   StyleSheet,
   Text,
-  View
+  View,
+  FlatList
 } from "react-native";
 import Expo, { Asset, Audio, FileSystem, Font, Permissions } from "expo";
 
 export default class App extends React.Component {
+  recorder = null;
   recording = null;
-  preview = null;
   state = {
     haveRecordingPermissions: false,
     status: "",
@@ -37,38 +38,57 @@ export default class App extends React.Component {
 
   _onPressExport = () => {};
 
-  _onPressOverwrite = () => {};
+  _onPressOverwrite = () => {
+    this._startRecorder();
+  };
 
-  _onPressRecord = async () => {
-    this.recording = new Audio.Recording();
-    await this._startRecording();
+  _onPressRecord = () => {
+    this._startRecorder();
   };
 
   _onPressReplay = async () => {
     if (this.state.status === "recording") {
-      await this.recording.stopAndUnloadAsync();
-      const { sound } = await this.recording.createNewLoadedSound();
-      this.preview = sound;
-      console.log("PRE-PLAY STATUS: ", await this.preview.getStatusAsync());
-      this.preview.playAsync();
-      console.log("PLAYING STATUS: ", await this.preview.getStatusAsync());
+      await this._convertRecording();
+      this.recording.playAsync();
       this.setState({ status: "playing" });
     } else {
-      this.preview.replayAsync();
+      this.recording.replayAsync();
     }
   };
 
-  _onPressSave = () => {
-    this.recording.stopAndUnloadAsync();
+  _onPressSave = async () => {
+    this.setState(
+      {
+        clips: [
+          ...this.state.clips,
+          { ...this.recorder, key: (this.state.clips.length + 1).toString() }
+        ]
+      },
+      () => {
+        this._startRecorder;
+        console.log(this.state.clips);
+      }
+    );
   };
 
-  _startRecording = async () => {
+  _startRecorder = async () => {
     try {
-      await this.recording.prepareToRecordAsync(
+      this.recorder = new Audio.Recording();
+      await this.recorder.prepareToRecordAsync(
         Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
       );
-      await this.recording.startAsync();
+      await this.recorder.startAsync();
       this.setState({ status: "recording" });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  _convertRecording = async () => {
+    try {
+      await this.recorder.stopAndUnloadAsync();
+      const { sound } = await this.recorder.createNewLoadedSound();
+      this.recording = sound;
     } catch (error) {
       console.error(error);
     }
@@ -86,25 +106,29 @@ export default class App extends React.Component {
             accessibilityLabel="Re-do"
           />
         </View>
-        <View style={styles.clips}>
-          <View style={styles.clip}>
-            <Text>00:09.203</Text>
-          </View>
-        </View>
+        <FlatList
+          style={styles.clips}
+          data={this.state.clips}
+          renderItem={clip => (
+            <View style={styles.bar}>
+              <Text>{clip._finalDurationMillis}</Text>
+            </View>
+          )}
+        />
         <View style={styles.controls}>
           <Button
             onPress={this._onPressOverwrite}
             title="Re-do"
             style={styles.button}
-            color="#e4b4c2"
+            color="#ffb8d1"
             accessibilityLabel="Re-do"
           />
-          {this.state.status !== "recording" ? (
+          {!this.state.status ? (
             <Button
               onPress={this._onPressRecord}
               title="Record"
               style={styles.button}
-              color="#e4b4c2"
+              color="#ffb8d1"
               accessibilityLabel="Record"
             />
           ) : (
@@ -112,7 +136,7 @@ export default class App extends React.Component {
               onPress={this._onPressReplay}
               title="Replay"
               style={styles.button}
-              color="#e4b4c2"
+              color="#ffb8d1"
               accessibilityLabel="Replay"
             />
           )}
@@ -120,7 +144,7 @@ export default class App extends React.Component {
             onPress={this._onPressSave}
             title="Next"
             style={styles.button}
-            color="#e4b4c2"
+            color="#ffb8d1"
             accessibilityLabel="Next"
           />
         </View>
@@ -130,6 +154,10 @@ export default class App extends React.Component {
 }
 
 const styles = StyleSheet.create({
+  bar: {
+    height: 40,
+    backgroundColor: "#e4b4c2"
+  },
   container: {
     flex: 1,
     backgroundColor: "#e7cee3",
@@ -143,7 +171,8 @@ const styles = StyleSheet.create({
   },
   clips: {
     flex: 1,
-    flexDirection: "row"
+    flexDirection: "column",
+    backgroundColor: "blue"
   },
   controls: {
     height: 80,
