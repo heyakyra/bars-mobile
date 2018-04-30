@@ -39,18 +39,23 @@ export default class App extends React.Component {
 
   _onPressOverwrite = () => {};
 
-  _onPressRecord = () => {
+  _onPressRecord = async () => {
     this.recording = new Audio.Recording();
-    this._startRecording();
+    await this._startRecording();
   };
 
   _onPressReplay = async () => {
-    if (this.status === "recording") {
+    if (this.state.status === "recording") {
       await this.recording.stopAndUnloadAsync();
-      this.preview = await this.recording.createNewLoadedSound();
+      const { sound } = await this.recording.createNewLoadedSound();
+      this.preview = sound;
+      console.log("PRE-PLAY STATUS: ", await this.preview.getStatusAsync());
+      this.preview.playAsync();
+      console.log("PLAYING STATUS: ", await this.preview.getStatusAsync());
       this.setState({ status: "playing" });
+    } else {
+      this.preview.replayAsync();
     }
-    this.preview.replayAsync();
   };
 
   _onPressSave = () => {
@@ -62,7 +67,6 @@ export default class App extends React.Component {
       await this.recording.prepareToRecordAsync(
         Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
       );
-      console.log("STATUS: ", await this.recording.getStatusAsync());
       await this.recording.startAsync();
       this.setState({ status: "recording" });
     } catch (error) {
