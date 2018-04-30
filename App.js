@@ -17,6 +17,7 @@ export default class App extends React.Component {
   state = {
     haveRecordingPermissions: false,
     longestDuration: 0,
+    currentDuration: 0,
     status: "",
     clips: []
   };
@@ -44,7 +45,10 @@ export default class App extends React.Component {
 
   _onPressExport = () => {};
 
-  _onPressOverwrite = () => {
+  _onPressOverwrite = async () => {
+    if (this.state.status === "recording") {
+      await this.recorder.stopAndUnloadAsync();
+    }
     this._startRecorder();
   };
 
@@ -87,6 +91,9 @@ export default class App extends React.Component {
       await this.recorder.prepareToRecordAsync(
         Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
       );
+      this.recorder.setOnRecordingStatusUpdate(
+        this._updateScreenForRecordingStatus
+      );
       await this.recorder.startAsync();
       this.setState({ status: "recording" });
     } catch (error) {
@@ -104,6 +111,18 @@ export default class App extends React.Component {
     }
   };
 
+  _updateStateDuringRecord = status => {
+    if (status.canRecord) {
+      this.setState({
+        currentDuration: status.durationMillis
+      });
+    } else if (status.isDoneRecording) {
+      this.setState({
+        recordingDuration: status.durationMillis
+      });
+    }
+  };
+
   render = () => {
     return (
       <View style={styles.container}>
@@ -116,48 +135,53 @@ export default class App extends React.Component {
             accessibilityLabel="Re-do"
           />
         </View>
-        <FlatList
-          style={styles.clips}
-          data={this.state.clips}
-          renderItem={clip => {
-            console.log(
-              "WIDTH",
-              Math.floor(
-                clip._finalDurationMillis /
-                  this.state.longestDuration *
-                  this.dimensions.width *
-                  0.8
-              ),
-              "CLIP DURATION:",
-              clip._finalDurationMillis,
-              "LONGEST DURATION:",
-              this.state.longestDuration,
-              "WIDTH",
-              this.dimensions.width,
-              "CLIP",
-              clip
-            );
-            return (
+        <View style={styles.bars}>
+          <FlatList
+            style={styles.clips}
+            data={this.state.clips}
+            renderItem={clip => (
               <View
                 style={{
                   height: 20,
                   margin: 4,
                   backgroundColor: "#e4b4c2",
-                  width: this.state._finalDurationMillis
-                    ? Math.floor(
-                        clip._finalDurationMillis /
-                          this.state.longestDuration *
-                          this.dimensions.width *
-                          0.8
-                      )
-                    : Math.floor(this.dimensions.width * 0.8)
+                  width:
+                    this.state.longestDuration > this.state.currentDuration
+                      ? clip.item._finalDurationMillis /
+                        this.state.longestDuration *
+                        this.dimensions.width *
+                        0.8
+                      : clip.item._finalDurationMillis /
+                        this.state.currentDuration *
+                        this.dimensions.width *
+                        0.8
                 }}
               >
-                <Text>{clip._finalDurationMillis}</Text>
+                <Text style={styles.barText}>
+                  {clip.item._finalDurationMillis / 1000}
+                </Text>
               </View>
-            );
-          }}
-        />
+            )}
+          />
+          <View
+            style={{
+              height: 20,
+              margin: 4,
+              backgroundColor: "#ddfdfe",
+              width:
+                this.state.longestDuration > this.state.currentDuration
+                  ? this.state.currentDuration /
+                    this.state.longestDuration *
+                    this.dimensions.width *
+                    0.8
+                  : this.dimensions.width * 0.8
+            }}
+          >
+            <Text style={styles.barText}>
+              {this.state.currentDuration / 1000}
+            </Text>
+          </View>
+        </View>
         <View style={styles.controls}>
           <Button
             onPress={this._onPressOverwrite}
@@ -202,6 +226,9 @@ const styles = StyleSheet.create({
     margin: 4,
     backgroundColor: "#e4b4c2"
   },
+  barText: {
+    color: "#8b8c91"
+  },
   container: {
     flex: 1,
     backgroundColor: "#e7cee3",
@@ -211,6 +238,10 @@ const styles = StyleSheet.create({
     height: 60,
     width: "100%",
     flexDirection: "row",
+    backgroundColor: "#e7cee3"
+  },
+  bars: {
+    flex: 1,
     backgroundColor: "#e7cee3"
   },
   clips: {
