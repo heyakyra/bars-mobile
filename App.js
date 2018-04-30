@@ -10,11 +10,11 @@ import {
 import Expo, { Asset, Audio, FileSystem, Font, Permissions } from "expo";
 
 export default class App extends React.Component {
+  recording = null;
+  preview = null;
   state = {
     haveRecordingPermissions: false,
     status: "",
-    currentRecording: {},
-    previewAudio: {},
     clips: []
   };
 
@@ -40,35 +40,30 @@ export default class App extends React.Component {
   _onPressOverwrite = () => {};
 
   _onPressRecord = () => {
-    this.setState(
-      { currentRecording: new Expo.Audio.Recording() },
-      this._startRecording
-    );
+    this.recording = new Audio.Recording();
+    this._startRecording();
   };
 
   _onPressReplay = async () => {
     if (this.status === "recording") {
-      await this.state.currentRecording.stopAndUnloadAsync();
-      this.state.previewAudio = await this.state.currentRecording.createNewLoadedSound();
+      await this.recording.stopAndUnloadAsync();
+      this.preview = await this.recording.createNewLoadedSound();
       this.setState({ status: "playing" });
     }
-    this.previewAudio.replayAsync();
+    this.preview.replayAsync();
   };
 
   _onPressSave = () => {
-    this.state.currentRecording.stopAndUnloadAsync();
+    this.recording.stopAndUnloadAsync();
   };
 
   _startRecording = async () => {
     try {
-      await this.state.currentRecording.prepareToRecordAsync(
+      await this.recording.prepareToRecordAsync(
         Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
       );
-      console.log(
-        "RECORDING ",
-        await this.state.currentRecording.getStatusAsync()
-      );
-      await this.state.currentRecording.startAsync();
+      console.log("STATUS: ", await this.recording.getStatusAsync());
+      await this.recording.startAsync();
       this.setState({ status: "recording" });
     } catch (error) {
       console.error(error);
@@ -82,7 +77,8 @@ export default class App extends React.Component {
           <Button
             onPress={this._onPressExport}
             title="Save"
-            color="#841584"
+            style={styles.button}
+            color="#e4b4c2"
             accessibilityLabel="Re-do"
           />
         </View>
@@ -95,28 +91,32 @@ export default class App extends React.Component {
           <Button
             onPress={this._onPressOverwrite}
             title="Re-do"
-            color="#841584"
+            style={styles.button}
+            color="#e4b4c2"
             accessibilityLabel="Re-do"
           />
           {this.state.status !== "recording" ? (
             <Button
               onPress={this._onPressRecord}
               title="Record"
-              color="#841584"
+              style={styles.button}
+              color="#e4b4c2"
               accessibilityLabel="Record"
             />
           ) : (
             <Button
               onPress={this._onPressReplay}
               title="Replay"
-              color="#841584"
+              style={styles.button}
+              color="#e4b4c2"
               accessibilityLabel="Replay"
             />
           )}
           <Button
             onPress={this._onPressSave}
             title="Next"
-            color="#841584"
+            style={styles.button}
+            color="#e4b4c2"
             accessibilityLabel="Next"
           />
         </View>
@@ -128,13 +128,14 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#e7cee3",
     flexDirection: "column"
   },
   nav: {
     height: 60,
     width: "100%",
     flexDirection: "row",
-    backgroundColor: "blue"
+    backgroundColor: "#e7cee3"
   },
   clips: {
     flex: 1,
@@ -144,7 +145,11 @@ const styles = StyleSheet.create({
     height: 80,
     width: "100%",
     flexDirection: "row",
-    backgroundColor: "blue"
+    backgroundColor: "#e7cee3"
+  },
+  button: {
+    flex: 1,
+    margin: 10
   }
 });
 
