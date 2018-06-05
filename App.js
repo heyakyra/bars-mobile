@@ -23,12 +23,6 @@ export default class App extends React.Component {
   };
 
   componentDidMount = () => {
-    // (async () => {
-    //   await Font.loadAsync({
-    //     "font-name": require("./assets/fonts/font-file.ttf")
-    //   });
-    //   this.setState({ fontLoaded: true });
-    // })();
     this._askForPermissions();
   };
 
@@ -144,6 +138,7 @@ export default class App extends React.Component {
                 style={{
                   height: 20,
                   margin: 4,
+                  paddingLeft: 4,
                   backgroundColor: "#e4b4c2",
                   width:
                     this.state.longestDuration > this.state.currentDuration
@@ -167,6 +162,7 @@ export default class App extends React.Component {
             style={{
               height: 20,
               margin: 4,
+              paddingLeft: 4,
               backgroundColor: "#ddfdfe",
               width:
                 this.state.longestDuration > this.state.currentDuration
@@ -253,10 +249,12 @@ const styles = StyleSheet.create({
     height: 80,
     width: "100%",
     flexDirection: "row",
+    alignContent: "center",
     backgroundColor: "#e7cee3"
   },
   button: {
     flex: 1,
+    flexGrow: 1,
     margin: 10
   }
 });
